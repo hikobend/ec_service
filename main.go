@@ -2,7 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -41,6 +43,8 @@ func main() {
 	r.PATCH("/product/:id/stock", StockUpdate)             // 在庫を更新
 	r.PATCH("/product/:id/brand", BrandUpdate)             // ブランドを更新
 	r.PATCH("/product/:id/description", DescriptionUpdate) // 説明を更新
+	r.GET("/buy/:item", Buy)                               // 商品を表示
+	r.PATCH("/purchases/:id", BuyProduct)                  // 商品を購入
 
 	r.Run()
 }
@@ -214,4 +218,48 @@ func DescriptionUpdate(c *gin.Context) {
 		log.Fatal(err)
 	}
 	update.Exec(json.Description, id)
+}
+
+func Buy(c *gin.Context) {
+	db, err := sql.Open("mysql", "root:password@(localhost:3306)/local?parseTime=true")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	str := c.Param("item") // 商品名を検索
+
+	var product Product
+
+	err = db.QueryRow("SELECT * FROM product WHERE name = ?", str).Scan(&product.Id, &product.Name, &product.Category, &product.Price, &product.Stock, &product.Brand, &product.Description, &product.CreatedAt, &product.UpdatedAt)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	c.JSON(http.StatusOK, product)
+}
+
+func BuyProduct(c *gin.Context) {
+	db, err := sql.Open("mysql", "root:password@(localhost:3306)/local?parseTime=true")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	var json Product_JSON
+	c.ShouldBindJSON(&json)
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	fmt.Println(json.Stock)
+
+	update, err := db.Prepare("UPDATE product SET stock = ? WHERE id = 1")
+	if err != nil {
+		log.Fatal(err)
+	}
+	update.Exec(id + 1)
+
 }

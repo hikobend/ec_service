@@ -18,3 +18,12 @@ CREATE TABLE `product` (
       "brand": "？",
       "description": "？"
 }
+
+商品を選択
+個数を選択
+商品の在庫数を個数を比較
+if 在庫 > 個数 
+個数 = 在庫 - 個数
+else
+在庫がないため購入できない
+end
