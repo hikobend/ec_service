@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -33,6 +34,12 @@ type Product struct { // DB
 func main() {
 	r := gin.Default()
 	r.POST("/create", Insert)
+	r.PATCH("/product/:id/name", NameUpdate) // 名前を更新
+	// r.PATCH("/product/:id/category", CategoryUpdate)       // 名前を更新
+	// r.PATCH("/product/:id/price", PriceUpdate)             // 名前を更新
+	// r.PATCH("/product/:id/stock", StockUpdate)             // 名前を更新
+	// r.PATCH("/product/:id/brand", BrandUpdate)             // 名前を更新
+	// r.PATCH("/product/:id/description", DescriptionUpdate) // 名前を更新
 
 	r.Run()
 }
@@ -52,4 +59,26 @@ func Insert(c *gin.Context) {
 		log.Fatal(err)
 	}
 	insert.Exec(product.Name, product.Category, product.Price, product.Stock, product.Brand, product.Description)
+}
+
+func NameUpdate(c *gin.Context) {
+	db, err := sql.Open("mysql", "root:password@(localhost:3306)/local?parseTime=true")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	var json Product_JSON
+	c.ShouldBindJSON(&json)
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	update, err := db.Prepare("UPDATE product SET  name = ? WHERE id = ?")
+	if err != nil {
+		log.Fatal(err)
+	}
+	update.Exec(json.Name, id)
 }
