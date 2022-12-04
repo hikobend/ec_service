@@ -1,0 +1,11 @@
+CREATE TABLE `product` (
+	`id` int  AUTO_INCREMENT PRIMARY KEY,
+	`name` text not null,
+	`category` text not null,
+	`price` int not null,
+	`stock` int not null,
+	`brand` text,
+	`description` text,
+	`created_at` DATETIME DEFAULT  CURRENT_TIMESTAMP,
+	`updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
