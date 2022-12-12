@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -22,7 +21,7 @@ type Product_JSON struct { // JSON
 }
 
 type Product struct { // DB
-	Id          int
+	Id          int `validate:"min=0"`
 	Name        string
 	Category    string
 	Price       int
@@ -244,6 +243,12 @@ func BuyProduct(c *gin.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// tx, err := db.Begin()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
 	defer db.Close()
 
 	var json Product_JSON
@@ -254,12 +259,25 @@ func BuyProduct(c *gin.Context) {
 		log.Fatalln(err)
 	}
 
-	fmt.Println(json.Stock)
-
-	update, err := db.Prepare("UPDATE product SET stock = ? WHERE id = 1")
+	update, err := db.Prepare("UPDATE product SET stock = stock - ? WHERE id = ?")
 	if err != nil {
 		log.Fatal(err)
 	}
-	update.Exec(id + 1)
+	update.Exec(json.Stock, id)
 
+	var product Product
+
+	err = db.QueryRow("SELECT price, stock FROM product").Scan(&product.Price, &product.Stock)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// if product.Stock < 0 {
+	// panic("問題発生")
+	// err = tx.Rollback()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// }
+
+	log.Printf("値段は %d です", product.Price*product.Stock)
 }
