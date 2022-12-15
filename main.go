@@ -25,7 +25,7 @@ type Product struct { // DB
 	Name        string
 	Category    string
 	Price       int
-	Stock       int
+	Stock       int `validate:"min=0"`
 	Brand       string
 	Description string
 	CreatedAt   time.Time
@@ -244,11 +244,10 @@ func BuyProduct(c *gin.Context) {
 		log.Fatal(err)
 	}
 
-	// tx, err := db.Begin()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer db.Close()
 
 	var json Product_JSON
@@ -259,25 +258,35 @@ func BuyProduct(c *gin.Context) {
 		log.Fatalln(err)
 	}
 
-	update, err := db.Prepare("UPDATE product SET stock = stock - ? WHERE id = ?")
+	update, err := db.Prepare("UPDATE product SET stock = case when stock >= ? then stock - ? end WHERE id = ?")
 	if err != nil {
 		log.Fatal(err)
+		err = tx.Rollback()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-	update.Exec(json.Stock, id)
+
+	update.Exec(json.Stock, json.Stock, id)
 
 	var product Product
 
 	err = db.QueryRow("SELECT price, stock FROM product").Scan(&product.Price, &product.Stock)
 	if err != nil {
 		log.Fatal(err)
+		err = tx.Rollback()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-	// if product.Stock < 0 {
-	// panic("問題発生")
-	// err = tx.Rollback()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// }
 
-	log.Printf("値段は %d です", product.Price*product.Stock)
+	err = tx.Commit()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if product.Price*product.Stock != 0 {
+		log.Printf("値段は %d です", product.Price*product.Stock)
+	} else {
+		log.Print("在庫が足りません")
+	}
 }
